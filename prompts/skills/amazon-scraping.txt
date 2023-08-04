@@ -1,4 +1,4 @@
-clone https://github.com/scrapehero-code/amazon-scraper to /usr/workspace/
+clone https://github.com/scrapehero-code/amazon-scraper to global.workspace_dir/
 read how to use it
 create a method that encapsulates its functionality. that function should execute a python script and return the results.
 

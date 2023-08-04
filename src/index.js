@@ -28,7 +28,7 @@ process.on("unhandledRejection", function(reason, thepromise){
   console.log("Unhandled Promise Rejection", reason, thepromise);
 }); 
 const port = process.env.PORT || 5004;
-app.listen(port, () => {
+app.listen(port, '127.0.0.1',() => {
   console.log(`Server running`);
 });
 

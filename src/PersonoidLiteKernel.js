@@ -5,7 +5,6 @@ import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import { serpAPIKey, openai } from "./chromaClient.js";
 import { cleanHtml } from "./cleanHtml.js";
-import { InMemoryDocumentStores } from "./InMemoryDocumentStores.js";
 import os from 'os';
 import jsdom from 'jsdom';
 import pdfParse from 'pdf-parse/lib/pdf-parse.js';
@@ -16,7 +15,7 @@ import mammoth from 'mammoth';
 const { JSDOM } = jsdom;
 global.DOMParser = new JSDOM().window.DOMParser
 global.axios = axios;
-
+global.workspace_dir = ""
 const DEFAULT_MAX_BYTES = 6000;
 const coding_instructions = fs.readFileSync(path.resolve("prompts/coding_instructions.txt")).toString();
 const further_instructions = fs.readFileSync(path.resolve("prompts/further_instructions.txt")).toString();
@@ -44,34 +43,14 @@ function validateToken(token) {
 function addToken(token) {
   tokens[token] = true;
 }
-const inMemoryDocumentStores = new InMemoryDocumentStores();
-global.inMemoryDocumentStores = inMemoryDocumentStores;
 
 async function init() {
-  try {
-    await inMemoryDocumentStores.initialize();
-    const methods = await global.inMemoryDocumentStoreForMethods.structured_query(undefined, 500);
-    methods.forEach((method) => {
-      const name = method.name;
-      PersonoidLiteKernel.methods[name] = {
-        // tags: [name],
-        request: method.request,
-        response: method.response,
-        ...method,
-        handler: async (request) => {
-          return await (eval(method.javascript_code))(request);
-        },
-      };
-    });
-    console.log("chroma ready");
-    console.log("Personoids Lite ready and waiting on http://localhost:5004")
+  const WORKSPACE_DIR = process.env["WORKSPACE_DIR"];
+  if (!WORKSPACE_DIR) {
+    throw new Error("WORKSPACE_DIR environment variable not set");
   }
-  catch (error) {
-    console.error("chroma not ready yet, waiting");
-    setTimeout(() => {
-      init();
-    }, 15000);
-  }
+  global.workspace_dir = WORKSPACE_DIR;
+  console.log("Personoids Lite ready and waiting on http://localhost:5004")
 }
 let booted = false;
 init();
@@ -213,7 +192,6 @@ export const PersonoidLiteKernel = {
           nextInstructions: "present the plan result in markdown format with the proxyFrom template.",
           fromProxy: {
             name: "Planner Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/12.png",
           }
         }
       }
@@ -284,7 +262,7 @@ export const PersonoidLiteKernel = {
             nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
             proxyFrom: {
               name: "File System Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/5.png",
+              
             }
           };
         }
@@ -295,7 +273,7 @@ export const PersonoidLiteKernel = {
             nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
             proxyFrom: {
               name: "File System Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/5.png",
+              
             }
           }
         }
@@ -306,7 +284,7 @@ export const PersonoidLiteKernel = {
             nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
             proxyFrom: {
               name: "File System Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/5.png",
+              
             }
           }
         }
@@ -318,7 +296,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "File System Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/5.png",
+                
               }
             }
           }
@@ -329,7 +307,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "File System Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/5.png",
+                
               }
             }
           }
@@ -342,7 +320,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "File System Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/5.png",
+                
               }
             };
           }
@@ -355,7 +333,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "File System Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/5.png",
+                
               }
             };
           }
@@ -368,7 +346,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "File System Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/5.png",
+                
               }
             };
           }
@@ -379,7 +357,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "File System Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/5.png",
+                
               }
             };
           }
@@ -391,7 +369,7 @@ export const PersonoidLiteKernel = {
             nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
             proxyFrom: {
               name: "File System Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/5.png",
+              
             }
           }
         }
@@ -410,7 +388,7 @@ export const PersonoidLiteKernel = {
         cwd: {
           type: 'string',
           required: false,
-          default: '/usr/workspace',
+          default: global.workspace_dir,
         },
         env_string: {
           type: 'string',
@@ -447,7 +425,7 @@ export const PersonoidLiteKernel = {
       },
       response: {},
       handler: async ({ command, cwd, env_string, blocking, terminate_after_seconds, maxBytes, offset, bootstrap_auth_token }) => {
-        cwd = cwd || '/usr/workspace';
+        cwd = cwd || global.workspace_dir;
         validateToken(bootstrap_auth_token);
         maxBytes = maxBytes || DEFAULT_MAX_BYTES;
         offset = offset || 0;
@@ -529,7 +507,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "present the intermediate results in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "DevOps Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/3.png",
+                
               }
             });
           });
@@ -547,7 +525,7 @@ export const PersonoidLiteKernel = {
               nextInstructions: "present the intermediate results in markdown format with the proxyFrom template.",
               proxyFrom: {
                 name: "DevOps Personoid",
-                avatar_image_url: "http://localhost:5004/avatar/3.png",
+                
               }
             });
 
@@ -616,7 +594,7 @@ export const PersonoidLiteKernel = {
             nextInstructions: "present the intermediate result in markdown format with the proxyFrom template.",
             proxyFrom: {
               name: "DevOps Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/3.png",
+              
             }
           };
         }
@@ -695,7 +673,7 @@ export const PersonoidLiteKernel = {
             "No stop is needed, the method is already available. auto-proceed.",
           proxyFrom: {
             name: "Plugin Developer Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/6.png",
+            
           }
         };
       }
@@ -804,7 +782,7 @@ export const PersonoidLiteKernel = {
           nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
           proxyFrom: {
             name: "Researcher Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/9.png",
+            
           }
         };
       }
@@ -964,225 +942,7 @@ export const PersonoidLiteKernel = {
           nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
           proxyFrom: {
             name: "Resarch Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/6.png",
-          }
-        };
-      }
-    },
-    "storeDocument": {
-      tags: ['Document'],
-      description: 'Stores a document in the in-memory document store, document should have a text field. you can omit the id field to generate a new id',
-      request: {
-        collection: {
-          type: 'string',
-        },
-        id: {
-          type: 'string',
-          description: 'optional'
-        },
-        document_json: {
-          type: 'string',
-        },
-        // document: {
-        //   type: 'object',
-        // },
-      },
-      response: {
-        result: {
-          type: 'string',
-        },
-      },
-      handler: async ({ id, document_json, document, collection }) => {
-        if (!document && document_json)
-          document = JSON.parse(document_json);
-        const _inMemoryDocumentStore = await inMemoryDocumentStores.getOrCreateStore(collection);
-        const newId = await _inMemoryDocumentStore.setDocument(id, document);
-        return {
-          result: newId,
-          nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-          proxyFrom: {
-            name: "Memory Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/7.png",
-          }
-        };
-      }
-    },
-    "getSingleDocument": {
-      tags: ['Document'],
-      request: {
-        collection: {
-          type: 'string',
-        },
-        id: {
-          type: 'string',
-        },
-      },
-      response: {
-        document: {
-          type: 'object',
-        },
-      },
-      handler: async ({ id, collection }) => {
-        const _inMemoryDocumentStore = await inMemoryDocumentStores.getOrCreateStore(collection);
-        const document = await _inMemoryDocumentStore.getDocument(id);
-        return {
-          document,
-          nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-          proxyFrom: {
-            name: "Memory Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/7.png",
-          }
-        };
-      }
-    },
-    "similarityQuery": {
-      tags: ['Document'],
-      request: {
-        collection: {
-          type: 'string',
-        },
-        match_string: {
-          type: 'string',
-        },
-      },
-      response: {
-        results: {
-          type: 'array',
-          items: {
-            type: 'object',
-          }
-        },
-      },
-      handler: async ({ match_string, collection }) => {
-        const _inMemoryDocumentStore = await inMemoryDocumentStores.getOrCreateStore(collection);
-
-        const results = await _inMemoryDocumentStore.similarity_query(match_string);
-        return {
-          results,
-          nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-          proxyFrom: {
-            name: "Memory Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/7.png",
-          }
-        };
-      }
-    },
-    "listAllDocuments": {
-      tags: ['Document'],
-      request: {
-        collection: {
-          type: 'string',
-        },
-        include_fields: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          default: ["id", "text", "name"]
-        },
-        bootstrap_auth_token: {
-          type: 'string',
-          description: "bootstrap auth token",
-          required: true,
-        },
-      },
-      response: {
-        results: {
-          type: 'array',
-          items: {
-            type: 'object',
-          }
-        },
-      },
-      handler: async ({ collection, include_fields, bootstrap_auth_token }) => {
-        validateToken(bootstrap_auth_token);
-        include_fields = include_fields || ["id", "text", "name"];
-        if (inMemoryDocumentStores.stores[collection] === undefined)
-          return {
-            results: [], error: "collection not found: did you mean: " + Object.keys(inMemoryDocumentStores.stores).join(", "),
-            nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-            proxyFrom: {
-              name: "Memory Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/7.png",
-            }
-          };
-        const _inMemoryDocumentStore = await inMemoryDocumentStores.getOrCreateStore(collection);
-
-        const results = await _inMemoryDocumentStore.structured_query(undefined, 10);
-
-        return {
-          results: results.map(r => {
-            const result = {};
-            for (const field of include_fields) {
-              result[field] = r[field];
-            }
-            return result;
-          }),
-          nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-          proxyFrom: {
-            name: "Memory Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/7.png",
-          }
-        };
-      }
-    },
-    "listCollections": {
-      tags: ['Document'],
-      request: {},
-      response: {
-        results: {
-          type: 'array',
-          items: {
-            type: 'string',
-          }
-        },
-      },
-      handler: async ({ }) => {
-        const results = Object.keys(inMemoryDocumentStores.stores);
-        return {
-          results,
-          nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-          proxyFrom: {
-            name: "Memory Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/7.png",
-          }
-        };
-      }
-    },
-    "structuredQuery": {
-      description: 'Structured query with the operators:$eq $ne $gt $gte $lt $lte',
-      tags: ['Document'],
-      request: {
-        collection: {
-          type: 'string',
-        },
-        query_object_json: {
-          type: 'string',
-        },
-        // query_object: {
-        //   type: 'object',
-        // },
-      },
-      response: {
-        results: {
-          type: 'array',
-          items: {
-            type: 'object',
-          }
-        },
-      },
-      handler: async ({ query_object_json, collection, query }) => {
-        if (!query && query_object_json)
-          query = JSON.parse(query_object_json);
-        const _inMemoryDocumentStore = await inMemoryDocumentStores.getOrCreateStore(collection);
-
-        const results = await _inMemoryDocumentStore.structured_query(query || {});
-        return {
-          results,
-          nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",
-          proxyFrom: {
-            name: "Memory Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/7.png",
+            
           }
         };
       }
@@ -1200,7 +960,7 @@ export const PersonoidLiteKernel = {
           nextInstructions: "present the results in markdown format with the proxyFrom template.",
           proxyFrom: {
             name: "Team Leader Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/11.png",
+            
           }
         };
       }
@@ -1222,8 +982,6 @@ export const PersonoidLiteKernel = {
       handler: async ({ confirmation }) => {
         if (confirmation !== "user confirmed this action")
           throw new Error("must pass in confirmation: 'user confirmed this action'");
-        await inMemoryDocumentStores.reset();
-
         setTimeout(() => {
           process.exit(0);
         }, 1000);
@@ -1273,7 +1031,7 @@ export const PersonoidLiteKernel = {
             nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template. use the serveFile endpoint to serve the image file to the user.",
             proxyFrom: {
               name: "Designer Personoid",
-              avatar_image_url: "http://localhost:5004/avatar/13.png",
+
             }
           };
         }
@@ -1285,59 +1043,6 @@ export const PersonoidLiteKernel = {
           }
           return { error: e.toString() };
         }
-      }
-    },
-    "renderAsHtml": {
-      description: 'never call this directly. only as part of links that you provide to the user - renders a document or a group of documents (through a manifest) as html. you can pass in a collection and id to render a single document, or a collection and a query to render multiple documents. you can also pass in a manifest to render multiple documents as a single page',
-      request: {
-        collection: {
-          name: 'collection',
-          type: 'string',
-          default: "html",
-        },
-
-        html_field_name: {
-          name: 'html_field_name',
-          type: 'string',
-          default: "html",
-        },
-        id: {
-          name: 'id',
-          type: 'string',
-        },
-      },
-      method: "get",
-      contentType: "text/html",
-      handler: async ({ collection, html_field_name, id }) => {
-        const _inMemoryDocumentStore = await inMemoryDocumentStores.getOrCreateStore(collection);
-        const document = await _inMemoryDocumentStore.getDocument(id);
-        const html = document[html_field_name];
-        if (!html)
-          throw new Error("field not found: " + html_field_name);
-        if (Array.isArray(html)) {
-          // manifest
-          let fullHtml = "";
-          const partField = document['parts_field'];
-          const partCollection = document['parts_collection'];
-          if (!partField)
-            throw new Error("field not found in manifest: parts_field");
-          if (!partCollection)
-            throw new Error("field not found in manifest: parts_collection");
-          for (let i = 0; i < html.length; i++) {
-            const partId = html[i];
-            const _inMemoryDocumentStore2 = await inMemoryDocumentStores.getOrCreateStore(partCollection);
-            const partDocument = await _inMemoryDocumentStore2.getDocument(partId);
-            if (!partDocument)
-              throw new Error("document not found: " + partId);
-
-            const part = partDocument[partField];
-            if (!part)
-              throw new Error("field not found in document: " + partField + " in document: " + partId);
-            fullHtml += part;
-          }
-          return fullHtml;
-        }
-        return html;
       }
     },
     "serveFile": {
@@ -1430,7 +1135,7 @@ export const PersonoidLiteKernel = {
           nextInstructions: "summarize and present the intermediate result in markdown format with the proxyFrom template.",          
           proxyFrom: {
             name: "Extractor Personoid",
-            avatar_image_url: "http://localhost:5004/avatar/11.png",
+            
           }
         };
 

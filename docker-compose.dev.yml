@@ -5,21 +5,21 @@ networks:
     driver: bridge
 
 services:
-  chroma:
-    container_name: chroma
-    image: personoids/chroma
-    restart: always 
-    environment:
-      - CHROMA_DB_IMPL=clickhouse
-      - CLICKHOUSE_HOST=clickhouse
-      - CLICKHOUSE_PORT=8123
-    build: 
-      context: ./
-      dockerfile: Dockerfile-chroma      
-    depends_on:
-      - clickhouse
-    networks:
-      - net
+#  chroma:
+#    container_name: chroma
+#    image: personoids/chroma
+#    restart: always
+#    environment:
+#      - CHROMA_DB_IMPL=clickhouse
+#      - CLICKHOUSE_HOST=clickhouse
+#      - CLICKHOUSE_PORT=8123
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile-chroma
+#    depends_on:
+#      - clickhouse
+#    networks:
+#      - net
   plugin:
     container_name: plugin
     image: personoids/plugin-lite
@@ -48,87 +48,14 @@ services:
       - 8083:8083
     volumes:
       - ./workspace:/usr/workspace
-    depends_on:
-      - chroma
+#    depends_on:
+#      - chroma
     networks:
       - net
-    links:
-      - chroma
-  clickhouse:
-    image: clickhouse/clickhouse-server:22.9-alpine
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - CLICKHOUSE_TCP_PORT=9000
-      - CLICKHOUSE_HTTP_PORT=8123
-    ports:
-      - '8123:8123'
-      - '9000:9000'
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-      - backups:/backups
-      - ./config/backup_disk.xml:/etc/clickhouse-server/config.d/backup_disk.xml
-      - ./config/chroma_users.xml:/etc/clickhouse-server/users.d/chroma.xml
-    networks:
-      - net
-  api:
-    container_name: LibreChat
-    ports:
-      - 3080:3080               # Change it to 9000:3080 to use nginx
-    depends_on:
-      - mongodb
-      - plugin
-    image: librechat                # Comment this & uncomment below to build from docker hub image
-    build:                                   # ^------
-      context: ./LibreChat/                              # ^------
-      target: node                             # ^------v
-    # image: ghcr.io/danny-avila/librechat:latest # Uncomment this & comment above to build from docker hub image
-    restart: always
-    extra_hosts: # if you are running APIs on docker you need access to, you will need to uncomment this line and next
-    - "host.docker.internal:host-gateway"
-    env_file:
-      - LibreChat/.env.default
-    environment:
-      - HOST=0.0.0.0
-      - MONGO_URI=mongodb://mongodb:27017/LibreChat
-      # - CHATGPT_REVERSE_PROXY=http://host.docker.internal:8080/api/conversation # if you are hosting your own chatgpt reverse proxy with docker
-      # - OPENAI_REVERSE_PROXY=http://host.docker.internal:8070/v1/chat/completions # if you are hosting your own chatgpt reverse proxy with docker
-      - MEILI_HOST=http://meilisearch:7700
-      - MEILI_HTTP_ADDR=meilisearch:7700
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    volumes:
-      - /app/client/node_modules
-      - ./LibreChat/api:/app/api
-      - ./LibreChat/.env.default:/app/.env
-      - /app/api/node_modules
-      - ./LibreChat/images:/app/client/public/images
-  mongodb:
-    container_name: chat-mongodb
-    ports:
-      - 27018:27017
-    image: mongo
-    restart: always
-    volumes:
-      - ./LibreChat/data-node:/data/db
-    command: mongod --noauth
-  meilisearch:
-    container_name: chat-meilisearch
-    image: getmeili/meilisearch:v1.0
-    ports:
-      - 7700:7700
-    env_file:
-      - LibreChat/.env.default
-    environment:
-      - MEILI_HOST=http://meilisearch:7700
-      - MEILI_HTTP_ADDR=meilisearch:7700
-    volumes:
-      - ./LibreChat/meili_data:/meili_data
+#    links:
+#      - chroma
 
 volumes:
-  clickhouse_data:
-    driver: local
-  clickhouse_logs:
-    driver: local
   index_data:
     driver: local
   backups:

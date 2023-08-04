@@ -3,7 +3,7 @@ async ({importsObject,parameter1, parameter2, ...})=>{
   // never use require(), only importsObject
   // actual implementation using global.axios, inMemoryDocumentStore, inMemoryDocumentStores, importsObject.twit, importsObject.fs , puppeteer etc.
   CODE_HERE
-  // return the result as a json object , including proxyFrom field that includes name and avatar_image_url:
+  // return the result as a json object , including proxyFrom field that includes name:
   RETURN_STATEMENT_HERE
 END_BLOCK
 

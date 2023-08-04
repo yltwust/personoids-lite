@@ -23,7 +23,7 @@ testing:
     - create a test plan
     - implement end2end tests
     - implement unit testing
-path: /usr/workspace/(project-name)
+path: global.workspace_dir/(project-name)
 
 ---
 

@@ -18,4 +18,4 @@ deployment aspects:
     - setup staging site
     - setup the CI/CD    
     - test and deploy
-path: /usr/workspace/(project-name)
+path: global.workspace_dir/(project-name)

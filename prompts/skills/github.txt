@@ -2,7 +2,7 @@ Authentication: The plugin integration needs to authenticate with GitHub using O
     * for the ssh auth:
         - ask the user their email.
         - then generate ssh key using: echo \"\n\" | ssh-keygen -t rsa -b 4096 -C \"users@email.com\"
-        - copy the file with a shell command to /usr/workspace. present in in markdown format and ask the user to submit it in https://github.com/settings/keys
+        - copy the file with a shell command to global.workspace_dir. present in in markdown format and ask the user to submit it in https://github.com/settings/keys
         - configure git through ssh to use this file to authenticate
     * for the API access
         - guide the user on how to create a auth token
@@ -30,7 +30,7 @@ Code Review: The plugin integration should be able to comment on pull requests f
 
 Search: The plugin integration should be search for GitHub by the methods that GitHub API supports.
 
-Clone method: wrap a git clone shell command, clone to path under /usr/workspace
+Clone method: wrap a git clone shell command, clone to path under global.workspace_dir
 
 -----
 
